@@ -1,8 +1,10 @@
 ## Sage Code Usage
 
+The program `cuspidal-cohomology-computations.py` loads two commands; their usage is discussed below.
+
 ### Computation of the Dimension of the Cuspidal Cohomology
 
-The command `Cuspidal_Cohomology_Dimension(p, Fq)` returns the dimension of the cuspidal cohomology for the level $\Gamma_0(3, p)$ with $\mathbb{F}_q$ coefficients.
+The command `Cuspidal_Cohomology_Dimension(p, Fq)` returns the dimension of the cuspidal cohomology for the level Γ₀(3, p) with $\mathbb{F}_q$ coefficients.
 
 INPUT:
 * `p` - a rational prime number
