@@ -39,5 +39,3 @@ sage: Compute_Hecke_Operators(53, GF(12379), 2)
  [   1 4228])
  ])
 ```
-
-Note, some additional work is needed following this command 
