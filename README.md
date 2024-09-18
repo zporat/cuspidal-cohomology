@@ -1,10 +1,10 @@
 ## Sage Code Usage
 
-The program `cuspidal-cohomology-computations.py` loads two commands; their usage is discussed below.
+The program `cuspidal-cohomology-computations.py` loads two commands; their usages are discussed below.
 
 ### Computation of the Dimension of the Cuspidal Cohomology
 
-The command `Cuspidal_Cohomology_Dimension(p, Fq)` returns the dimension of the cuspidal cohomology for the level Γ₀(3, p) with $\mathbb{F}_q$ coefficients.
+The command `Cuspidal_Cohomology_Dimension(p, Fq)` returns the dimension of the cuspidal cohomology for the level $\Gamma_0(3, p)$ with $\mathbb{F}_q$ coefficients.
 
 INPUT:
 * `p` - a rational prime number
@@ -20,7 +20,7 @@ sage: Cuspidal_Cohomology_Dimension(53, GF(12379))
 
 The command `Compute_Hecke_Operators(p, Fq, l)` returns the characteristic polynomial of the Hecke operator $E_\ell$ directly on $W/W^\text{nc}$.  Additionally, it gives the eigenvalues over $\mathbb{F}_q$ and corresponding eigenvectors.
 
-We note that this characteristic polynomial has coefficients in $\mathbb{F}$.  One then must find the appropriate polynomial over $\mathbb{C}$, whose roots are the Hecke eigenvalue ${e_\ell}$ and its complex conjugate $\overline{e_\ell}$.  
+We note that this characteristic polynomial has coefficients in $\mathbb{F}$.  One then must find the appropriate polynomial over $\mathbb{C}$, whose roots are the Hecke eigenvalue $e_\ell$ and its complex conjugate $\overline{e_\ell}$.  
 
 INPUT:
 * `p` - a rational prime number
