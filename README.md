@@ -16,7 +16,7 @@ sage: Cuspidal_Cohomology_Dimension(53, GF(12379))
 
 ### Computation of Hecke Operators
 
-The command `Compute_Hecke_Operators(p, Fq, l)` returns the characteristic polynomial with $\mathbb{F}_q$ coefficients for the action of the Hecke operator $E_\ell$.  Additionally, it gives the eigenvalues over $\mathbb{F}_q$ and corresponding eigenvectors.
+The command `Compute_Hecke_Operators(p, Fq, l)` returns the characteristic polynomial with $\mathbb{F}_q$ coefficients of the Hecke operator $E_\ell$.  Additionally, it gives the eigenvalues over $\mathbb{F}_q$ and corresponding eigenvectors.
 
 INPUT:
 * `p` - a rational prime number
@@ -24,8 +24,8 @@ INPUT:
 * `l` - a rational prime number
 
 ```python
-sage: attach("PATH/Curve_Data.sage")
-sage: CurveDataSample(5, 3, 50000000)
+sage: attach("PATH/cuspidal-cohomology-computations.py")
+sage: Compute_Hecke_Operators(53, GF(12379), 2)
 (2,
  T^2 + 4*T + 15,
  [
@@ -38,4 +38,4 @@ sage: CurveDataSample(5, 3, 50000000)
  ])
 ```
 
-Note, some additional work is needed following this command to find the appropriate polynomial over $\mathbb{C}$, whose roots are the Hecke eigenvalue $e_\ell$ and its complex conjugate $\overline{e_\ell}$.  
+Note, some additional work is needed following this command to find the appropriate polynomial over $\mathbb{C}$, whose roots are the Hecke eigenvalue $e_\ell$ and its complex conjugate $\bar{e_\ell}$.  
