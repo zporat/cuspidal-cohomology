@@ -20,7 +20,7 @@ sage: Cuspidal_Cohomology_Dimension(53, GF(12379))
 
 The command `Compute_Hecke_Operators(p, Fq, l, Basis)` returns the characteristic polynomial of the Hecke operator $E_\ell$ directly on $W/W^\text{nc}$.  Additionally, it gives the eigenvalues over $\mathbb{F}_q$ and corresponding eigenvectors.
 
-We note that this characteristic polynomial has coefficients in $\mathbb{F}_q$.  One then must find the appropriate polynomial over $\mathbb{C}$, whose roots are the desired Hecke eigenvalue and its complex conjugate.
+We note that this gives the characteristic polynomial of $E_\ell$ on $H^3_{\text{cusp}}(\Gamma, \mathbb{F}_q)$.  One must then lift to the appropriate characteristic polynomial (see section 4.2 of the paper).
 
 INPUT:
 * `p` - a rational prime number
@@ -42,7 +42,6 @@ sage: Compute_Hecke_Operators(53, GF(12379), 2)
  [   1 4228])
  ])
 ```
-
 Note: If computing for multiple values of $\ell$, use the command `p_Basis_Construction(p, Fq)` to first build a basis for $W/W^\text{nc}$.  Then, one can pass the result in the optional `Basis` argument, preventing the program from computing the same basis repeatedly for each $\ell$.
 
 ## Magma Code Usage
