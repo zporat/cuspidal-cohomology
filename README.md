@@ -43,7 +43,7 @@ sage: Compute_Hecke_Operators(53, GF(12379), 2)
  ])
 ```
 
-Note: If computing for multiple values of $\ell$, use the command `p_Basis_Construction(p, Fq)` to first build a basis for $W/W^\text{nc}$.  Then, one can pass the result in the optional `Basis` argument, preventing the program from computing the same basis repeatedly for each $\ell$.
+If computing for multiple values of $\ell$, use the command `p_Basis_Construction(p, Fq)` to first build a basis for $W/W^\text{nc}$.  Then, one can pass the result to the function as an optional `Basis` argument, preventing the program from computing the same basis repeatedly for each $\ell$.
 
 ## Magma Code Usage
 
