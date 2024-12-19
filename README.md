@@ -18,7 +18,7 @@ sage: Cuspidal_Cohomology_Dimension(53, GF(12379))
 
 ### Computation of Hecke Operators
 
-The command `Compute_Hecke_Operators(p, Fq, l)` returns the characteristic polynomial of the Hecke operator $E_\ell$ directly on $W/W^\text{nc}$.  Additionally, it gives the eigenvalues over $\mathbb{F}_q$ and corresponding eigenvectors.
+The command `Compute_Hecke_Operators(p, Fq, l, Basis)` returns the characteristic polynomial of the Hecke operator $E_\ell$ directly on $W/W^\text{nc}$.  Additionally, it gives the eigenvalues over $\mathbb{F}_q$ and corresponding eigenvectors.
 
 We note that this characteristic polynomial has coefficients in $\mathbb{F}_q$.  One then must find the appropriate polynomial over $\mathbb{C}$, whose roots are the desired Hecke eigenvalue and its complex conjugate.
 
@@ -26,6 +26,7 @@ INPUT:
 * `p` - a rational prime number
 * `Fq` - a large finite field of prime order
 * `l` - a rational prime number
+* `Basis` - (optional) a basis for $W/W^\text{nc}$
 
 ```python
 sage: attach("PATH/cuspidal-cohomology-computations.py")
@@ -41,3 +42,9 @@ sage: Compute_Hecke_Operators(53, GF(12379), 2)
  [   1 4228])
  ])
 ```
+
+Note: If computing for multiple values of $\ell$, use the command `p_Basis_Construction(p, Fq)` to first build a basis for $W/W^\text{nc}$.  Then, one can pass the result in the optional `Basis` argument, preventing the program from computing the same basis repeatedly for each $\ell$.
+
+## Magma Code Usage
+
+The above SageMath code has since been translated into [Magma](http://magma.maths.usyd.edu.au/magma/). The command names and inputs are the same in both programs.  The Magma code and examples are coming soon. 

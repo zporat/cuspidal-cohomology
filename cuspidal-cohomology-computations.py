@@ -188,14 +188,29 @@ def modform_reduction(mod_symbol):
 
     return nonzero_det_symbols
 
-# Define a function for computing the action of Hecke operators on the cuspidal cohomology for a given prime level N, finite field Fq, and list of Hecke primes l_list.
-def Compute_Hecke_Operators(N, Fq, l):
+# Define a function for computing a basis for W/Wnc
+def p_Basis_Construction(N, Fq):
     P = ProjectiveSpace(2, GF(N))
     Dict = P.rational_points_dictionary()
 
     M = Matrix_Construction(N, Fq)
     Kernel = M.right_kernel()
     Basis = Kernel.basis()
+
+    return Basis
+
+# Define a function for computing the action of Hecke operators on the cuspidal cohomology for a given prime level N, finite field Fq, and a Hecke prime l.
+def Compute_Hecke_Operators(N, Fq, l, User_Basis=False):
+    P = ProjectiveSpace(2, GF(N))
+    Dict = P.rational_points_dictionary()
+
+    if User_Basis:
+        Basis = User_Basis
+    else:
+        M = Matrix_Construction(N, Fq)
+        Kernel = M.right_kernel()
+        Basis = Kernel.basis()
+        
     dim_U = len(Basis)
 
     # Build B_i coset reps for E_l
