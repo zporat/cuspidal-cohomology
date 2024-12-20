@@ -188,159 +188,150 @@ def modform_reduction(mod_symbol):
 
     return nonzero_det_symbols
 
-# Define a function for computing a basis for W/Wnc
-def p_Basis_Construction(N, Fq):
+# Define a function for computing the action of Hecke operators on the cuspidal cohomology for a given prime level N, finite field Fq, and a Hecke prime l.
+def Compute_Hecke_Operators(N, Fq, l_list):
     P = ProjectiveSpace(2, GF(N))
     Dict = P.rational_points_dictionary()
 
     M = Matrix_Construction(N, Fq)
     Kernel = M.right_kernel()
     Basis = Kernel.basis()
-
-    return Basis
-
-# Define a function for computing the action of Hecke operators on the cuspidal cohomology for a given prime level N, finite field Fq, and a Hecke prime l.
-def Compute_Hecke_Operators(N, Fq, l, User_Basis=False):
-    P = ProjectiveSpace(2, GF(N))
-    Dict = P.rational_points_dictionary()
-
-    if User_Basis:
-        Basis = User_Basis
-    else:
-        M = Matrix_Construction(N, Fq)
-        Kernel = M.right_kernel()
-        Basis = Kernel.basis()
-        
     dim_U = len(Basis)
 
-    # Build B_i coset reps for E_l
-    Reps_E = []
+    for l in l_list:
+        # Build B_i coset reps for E_l
+        Reps_E = []
 
-    for a in range(0, l):
-        for b in range(0, l):
+        for a in range(0, l):
+            for b in range(0, l):
+                v1 = [1, 0, 0]
+                v2 = [0, 1, 0]
+                v3 = [a*N, b, l]
+                Bi = matrix([v1, v2, v3])
+                Reps_E.append(Bi)
+
+        for c in range(0, l):
             v1 = [1, 0, 0]
-            v2 = [0, 1, 0]
-            v3 = [a*N, b, l]
+            v2 = [c*N, l, 0]
+            v3 = [0, 0, 1]
             Bi = matrix([v1, v2, v3])
             Reps_E.append(Bi)
 
-    for c in range(0, l):
-        v1 = [1, 0, 0]
-        v2 = [c*N, l, 0]
+        v1 = [l, 0, 0]
+        v2 = [0, 1, 0]
         v3 = [0, 0, 1]
         Bi = matrix([v1, v2, v3])
         Reps_E.append(Bi)
+        
+        # Build the initial (potential) spanning set
+        Q_j_list = []
 
-    v1 = [l, 0, 0]
-    v2 = [0, 1, 0]
-    v3 = [0, 0, 1]
-    Bi = matrix([v1, v2, v3])
-    Reps_E.append(Bi)
-    
-    # Build the initial (potential) spanning set
-    Q_j_list = []
+        x_list = random.sample(range(1, N), 2)
+        y_list = random.sample(range(1, N), 2)
+        z_list = random.sample(range(1, N), 1)
 
-    x_list = random.sample(range(1, N), 2)
-    y_list = random.sample(range(1, N), 2)
-    z_list = random.sample(range(1, N), 1)
+        for x_j in x_list:
+            for y_j in y_list:
+                for z_j in z_list:
+                    y_over_x = mod(Integer(y_j)/Integer(x_j), N)
+                    z_over_x = mod(Integer(z_j)/Integer(x_j), N)
 
-    for x_j in x_list:
-        for y_j in y_list:
-            for z_j in z_list:
-                y_over_x = mod(Integer(y_j)/Integer(x_j), N)
-                z_over_x = mod(Integer(z_j)/Integer(x_j), N)
+                    Q_j_xy = matrix(ZZ, [[1, 0, 0], [x_j, 1, 0], [y_j, 0, 1]])
+                    Q_j_yz = matrix(ZZ, [[1, 0, 0], [y_j, 1, 0], [z_j, 0, 1]])
+                    Q_j_zx = matrix(ZZ, [[1, 0, 0], [z_j, 1, 0], [x_j, 0, 1]])
+                    Q_j_1 = matrix(ZZ, [[1, 0, 0], [y_over_x, 1, 0], [z_over_x, 0, 1]])
+                    Q_j_list.append([Q_j_xy, Q_j_yz, Q_j_zx, Q_j_1])
 
-                Q_j_xy = matrix(ZZ, [[1, 0, 0], [x_j, 1, 0], [y_j, 0, 1]])
-                Q_j_yz = matrix(ZZ, [[1, 0, 0], [y_j, 1, 0], [z_j, 0, 1]])
-                Q_j_zx = matrix(ZZ, [[1, 0, 0], [z_j, 1, 0], [x_j, 0, 1]])
+        start_var = True
+        num_spanning_symbs_increment = 0
+        Basis_Matrix = matrix(Fq, dim_U, 0)
+        Tf_Matrix = matrix(Fq, dim_U, 0)
+        Span_Set_Loc = -1
+
+        while start_var == True or Basis_Matrix.rank() != dim_U:
+            start_var = False
+
+            Tf_Matrix = Tf_Matrix.augment(matrix(Fq, dim_U, len(Q_j_list)))
+            Basis_Matrix = Basis_Matrix.augment(matrix(Fq, dim_U, len(Q_j_list)))
+
+            for Qxyz in Q_j_list:
+                Bi_sum_list = vector(Fq, dim_U, sparse=True)
+                Qj_loc = -1
+                Span_Set_Loc += 1
+                for Qj in Qxyz:
+                    Qj_loc = Qj_loc + 1
+                    Qxyz_sum_list = vector(Fq, dim_U, sparse=True)
+                    for Bi in Reps_E: 
+                        Qij_sum_list = vector(Fq, dim_U, sparse=True)
+
+                        R = Qj*Bi
+
+                        uni_symbols_R = []
+                        starting_list = modform_reduction(R)
+                        working_symbols = list(starting_list)
+
+                        while starting_list != []: 
+                            for test_matrix in starting_list: 
+                                if test_matrix.det() == 1:
+                                    uni_symbols_R.append(test_matrix)
+                                    working_symbols.remove(test_matrix)
+                                elif test_matrix.det() == -1:
+                                    working_symbols.remove(test_matrix)
+                                    row_test_matrix = matrix(ZZ, 3, [-1, 0, 0, 0, 1, 0, 0, 0, 1])*test_matrix
+                                    uni_symbols_R.append(row_test_matrix)
+                                else:
+                                    output = modform_reduction(test_matrix)
+                                    index_to_replace = working_symbols.index(test_matrix)
+                                    num_items_to_replace = 1
+                                    working_symbols[index_to_replace:index_to_replace + num_items_to_replace] = output
+                                    
+                            starting_list = working_symbols
+
+                        for Mij in uni_symbols_R:
+                            proj_point = P(Mij[(0,0)], Mij[(1,0)], Mij[(2,0)])
+                            function_output_list = vector(Fq, dim_U, sparse=True)
+
+                            for i in range(0, dim_U):
+                                function_output_list[i] = Basis[i][Dict[proj_point]]
+                                Qij_sum_list[i] = Qij_sum_list[i] + function_output_list[i]
+                        
+                        for i in range(0, dim_U):
+                            if Qj_loc < 3:
+                                Qxyz_sum_list[i] = Qxyz_sum_list[i] + Qij_sum_list[i]
+                            elif Qj_loc == 3:
+                                Qxyz_sum_list[i] = Qxyz_sum_list[i] - Qij_sum_list[i]
+
+                    for j in range(0, dim_U):
+                        Bi_sum_list[j] = Bi_sum_list[j] + Qxyz_sum_list[j]
+
+                for k in range(0, dim_U):
+                    Tf_Matrix[k, Span_Set_Loc] = Bi_sum_list[k]
+                    Basis_Matrix[k, Span_Set_Loc] = Basis[k][Dict[P(list(Qxyz[0].column(0)))]] + Basis[k][Dict[P(list(Qxyz[1].column(0)))]] + Basis[k][Dict[P(list(Qxyz[2].column(0)))]] - Basis[k][Dict[P(list(Qxyz[3].column(0)))]]
+
+            if Basis_Matrix.rank() != dim_U:
+                num_spanning_symbs_increment += 1
+
+                x_rand = choice(range(1, N))
+                y_rand = choice(range(1, N))
+                z_rand = choice(range(1, N))
+
+                y_over_x = mod(Integer(y_rand)/Integer(x_rand), N)
+                z_over_x = mod(Integer(z_rand)/Integer(x_rand), N)
+
+                Q_j_xy = matrix(ZZ, [[1, 0, 0], [x_rand, 1, 0], [y_rand, 0, 1]])
+                Q_j_yz = matrix(ZZ, [[1, 0, 0], [y_rand, 1, 0], [z_rand, 0, 1]])
+                Q_j_zx = matrix(ZZ, [[1, 0, 0], [z_rand, 1, 0], [x_rand, 0, 1]])
                 Q_j_1 = matrix(ZZ, [[1, 0, 0], [y_over_x, 1, 0], [z_over_x, 0, 1]])
                 Q_j_list.append([Q_j_xy, Q_j_yz, Q_j_zx, Q_j_1])
 
-    start_var = True
-    num_spanning_symbs_increment = 0
-    Basis_Matrix = matrix(Fq, dim_U, 0)
-    Tf_Matrix = matrix(Fq, dim_U, 0)
-    Span_Set_Loc = -1
+            else:
+                A = Basis_Matrix.solve_left(Tf_Matrix)
+                Char_Poly = A.charpoly('T')
+                A_Data = A.eigenspaces_right(format="galois")
 
-    while start_var == True or Basis_Matrix.rank() != dim_U:
-        start_var = False
-
-        Tf_Matrix = Tf_Matrix.augment(matrix(Fq, dim_U, len(Q_j_list)))
-        Basis_Matrix = Basis_Matrix.augment(matrix(Fq, dim_U, len(Q_j_list)))
-
-        for Qxyz in Q_j_list:
-            Bi_sum_list = vector(Fq, dim_U, sparse=True)
-            Qj_loc = -1
-            Span_Set_Loc += 1
-            for Qj in Qxyz:
-                Qj_loc = Qj_loc + 1
-                Qxyz_sum_list = vector(Fq, dim_U, sparse=True)
-                for Bi in Reps_E: 
-                    Qij_sum_list = vector(Fq, dim_U, sparse=True)
-
-                    R = Qj*Bi
-
-                    uni_symbols_R = []
-                    starting_list = modform_reduction(R)
-                    working_symbols = list(starting_list)
-
-                    while starting_list != []: 
-                        for test_matrix in starting_list: 
-                            if test_matrix.det() == 1:
-                                uni_symbols_R.append(test_matrix)
-                                working_symbols.remove(test_matrix)
-                            elif test_matrix.det() == -1:
-                                working_symbols.remove(test_matrix)
-                                row_test_matrix = matrix(ZZ, 3, [-1, 0, 0, 0, 1, 0, 0, 0, 1])*test_matrix
-                                uni_symbols_R.append(row_test_matrix)
-                            else:
-                                output = modform_reduction(test_matrix)
-                                index_to_replace = working_symbols.index(test_matrix)
-                                num_items_to_replace = 1
-                                working_symbols[index_to_replace:index_to_replace + num_items_to_replace] = output
-                                
-                        starting_list = working_symbols
-
-                    for Mij in uni_symbols_R:
-                        proj_point = P(Mij[(0,0)], Mij[(1,0)], Mij[(2,0)])
-                        function_output_list = vector(Fq, dim_U, sparse=True)
-
-                        for i in range(0, dim_U):
-                            function_output_list[i] = Basis[i][Dict[proj_point]]
-                            Qij_sum_list[i] = Qij_sum_list[i] + function_output_list[i]
-                    
-                    for i in range(0, dim_U):
-                        if Qj_loc < 3:
-                            Qxyz_sum_list[i] = Qxyz_sum_list[i] + Qij_sum_list[i]
-                        elif Qj_loc == 3:
-                            Qxyz_sum_list[i] = Qxyz_sum_list[i] - Qij_sum_list[i]
-
-                for j in range(0, dim_U):
-                    Bi_sum_list[j] = Bi_sum_list[j] + Qxyz_sum_list[j]
-
-            for k in range(0, dim_U):
-                Tf_Matrix[k, Span_Set_Loc] = Bi_sum_list[k]
-                Basis_Matrix[k, Span_Set_Loc] = Basis[k][Dict[P(list(Qxyz[0].column(0)))]] + Basis[k][Dict[P(list(Qxyz[1].column(0)))]] + Basis[k][Dict[P(list(Qxyz[2].column(0)))]] - Basis[k][Dict[P(list(Qxyz[3].column(0)))]]
-
-        if Basis_Matrix.rank() != dim_U:
-            num_spanning_symbs_increment += 1
-
-            x_rand = choice(range(1, N))
-            y_rand = choice(range(1, N))
-            z_rand = choice(range(1, N))
-
-            y_over_x = mod(Integer(y_rand)/Integer(x_rand), N)
-            z_over_x = mod(Integer(z_rand)/Integer(x_rand), N)
-
-            Q_j_xy = matrix(ZZ, [[1, 0, 0], [x_rand, 1, 0], [y_rand, 0, 1]])
-            Q_j_yz = matrix(ZZ, [[1, 0, 0], [y_rand, 1, 0], [z_rand, 0, 1]])
-            Q_j_zx = matrix(ZZ, [[1, 0, 0], [z_rand, 1, 0], [x_rand, 0, 1]])
-            Q_j_1 = matrix(ZZ, [[1, 0, 0], [y_over_x, 1, 0], [z_over_x, 0, 1]])
-            Q_j_list.append([Q_j_xy, Q_j_yz, Q_j_zx, Q_j_1])
-
-        else:
-            A = Basis_Matrix.solve_left(Tf_Matrix)
-            Char_Poly = A.charpoly('T')
-            A_Data = A.eigenspaces_right(format="galois")
-
-            return l, Char_Poly, A_Data
+                if Char_Poly.is_irreducible():
+                    return print('Characteristic polynomial is irreducible, choose another prime q.')
+                elif len(A_Data) == 1:
+                    print(l, ':', Char_Poly, ':', Char_Poly.coefficients(), ':', A_Data[0][0], ':', A_Data[0][1][1], ':', 'NONE', flush=True)                    
+                else:
+                    print(l, ':', Char_Poly, ':', Char_Poly.coefficients(), ':', A_Data[0][0], ':', A_Data[0][1][1], ':', A_Data[1][0], ':', A_Data[1][1][1], flush=True)
