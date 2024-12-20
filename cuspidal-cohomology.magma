@@ -1,0 +1,505 @@
+// cuspidal-cohomology.magma
+// Version 1.0
+// December 2024
+
+// Zachary Porat
+
+/*
+================================================================================
+Building a function that constructs the matrix M, whose kernel is U, as 
+described in section 4.1.
+
+* N denotes the level of the congruence subgroup.
+* Fq denotes the finite field used to simulate the complex numbers.
+================================================================================
+*/
+
+function Matrix_Construction(N, Fq) // N = 53, Fq = Integers(12379)
+// -----------------------------------------------------------------------------
+// Sets default information needed to build matrix M, whose kernel is U.
+// -----------------------------------------------------------------------------
+    P := ProjectiveSpace(GF(N), 2);
+    Points := Points(P);
+    
+    row_num := 1;
+    Gamma0_Index := N^2 + N + 1;   
+    Number_of_Rows := 4*N^2 + 5*N + 4; 
+    M := SparseMatrix(Fq, Number_of_Rows, Gamma0_Index); 
+
+// -----------------------------------------------------------------------------
+// Builds a dictionary of rational points in P2(Z/NZ).
+// -----------------------------------------------------------------------------
+    Dict := AssociativeArray();
+    pt_counter := 0;
+    for pt in Points do
+        pt_counter +:= 1;
+        Dict[pt] := pt_counter;
+    end for;
+
+// -----------------------------------------------------------------------------
+// Condition 3: f(x:y:0) = 0 
+// -----------------------------------------------------------------------------
+    for pt in Points do
+        if pt[3] eq 0 then
+            M[row_num, Dict[pt]] := 1;
+            row_num +:= 1;
+        end if;
+    end for;
+
+// -----------------------------------------------------------------------------
+// Condition 4: f(x:y:0) = 0 
+// -----------------------------------------------------------------------------
+    // x = 0, y = 0:
+    M[row_num, Dict[P!([0, 0, 1])]] := N - 1;
+    row_num +:= 1;
+
+    // x = 0, y = 1:
+    L_4a := [];
+    for i in [1..N-1] do
+        p_4a := [0, i, 1];
+        Append(~L_4a, P!p_4a);
+    end for;
+
+    for pt in L_4a do
+        M[row_num, Dict[pt]] := 1;
+    end for;
+
+    row_num +:= 1;
+
+    // x = 1:
+    L_4b := [];
+    for i in [0..N-1] do
+        for j in [1..N-1] do
+            p_4b := [1, i, j];
+            Append(~L_4b, P!p_4b);
+        end for;
+
+        for pt in L_4b do
+            M[row_num, Dict[pt]] := 1;
+        end for;
+
+        L_4b := [];
+        row_num +:= 1;
+    end for;
+
+// -----------------------------------------------------------------------------
+// Condition 1a: f(x:y:z) = f(-x:y:z)
+// -----------------------------------------------------------------------------
+    for pt in Points do
+        p_negxyz := [-pt[1], pt[2], pt[3]];
+        p_1a := P!p_negxyz;
+        if pt eq p_1a then // If (x:y:z) = (-x:y:z), ignore since no new info gained
+            continue;
+        else
+            M[row_num, Dict[pt]] := 1;
+            M[row_num, Dict[p_1a]] := -1;
+            row_num +:= 1;
+        end if;
+    end for;
+
+// -----------------------------------------------------------------------------
+// Condition 1b: f(x:y:z) = f(z:x:y)
+// -----------------------------------------------------------------------------
+    for pt in Points do
+        p_zxy := [pt[3], pt[1], pt[2]];
+        p_1b := P!p_zxy;
+        if pt eq p_1b then // If (x:y:z) = (z:x:y), ignore since no new info gained
+            continue; 
+        else
+            M[row_num, Dict[pt]] := 1;
+            M[row_num, Dict[p_1b]] := -1;
+            row_num +:= 1;
+        end if;
+    end for;
+
+// -----------------------------------------------------------------------------
+// Condition 1c: f(x:y:z) = -f(y:x:z)
+// -----------------------------------------------------------------------------
+    for pt in Points do
+        p_yxz := [pt[2], pt[1], pt[3]];
+        p_1c := P!p_yxz;
+        if pt eq p_1c then
+            M[row_num, Dict[pt]] := 2;
+            row_num +:= 1;    
+        else
+            M[row_num, Dict[pt]] := 1;
+            M[row_num, Dict[p_1c]] := 1;
+            row_num +:= 1;   
+        end if;
+    end for;
+
+// -----------------------------------------------------------------------------
+// Condition 2: f(x:y:z) + f(-y:x-y:z) + f(y-x:-x:z) = 0
+// -----------------------------------------------------------------------------
+    for pt in Points do
+        p_negy := [-pt[2], pt[1] - pt[2], pt[3]];
+        p_ynegx := [pt[2] - pt[1], -pt[1], pt[3]];
+        p_2a := P!p_negy;
+        p_2b := P!p_ynegx;
+        if pt eq p_2a and pt eq p_2b then
+            M[row_num, Dict[pt]] := 3;
+            row_num +:= 1;
+        else
+            M[row_num, Dict[pt]] := 1;
+            M[row_num, Dict[p_2a]] := 1;
+            M[row_num, Dict[p_2b]] := 1;
+            row_num +:= 1;
+        end if;
+    end for;
+
+    return M;
+end function;
+
+/*
+================================================================================
+Building a function that computes the dimension of the cuspidal cohomology by 
+computing the dimension of U, as described in section 4.1.
+
+* N denotes the level of the congruence subgroup.
+* Fq denotes the finite field used to simulate the complex numbers.
+================================================================================
+*/
+
+function Cuspidal_Cohomology_Dimension(N, Fq)
+    M := Matrix_Construction(N, Fq);
+    Gamma0_Index := N^2 + N + 1;   
+    M_Rank := Rank(M);
+    Corank := Gamma0_Index - M_Rank;
+
+    result_string := Sprintf("%o : %o", N, Corank);
+    return result_string;
+end function;
+
+/*
+================================================================================
+Creating a minor function for computing absolute values that is needed in the 
+main modular symbol reduction algorithm. 
+================================================================================
+*/
+
+function mod_abs_value(int, modulus)
+    Zm := Integers(modulus);
+    value := Zm!int;
+    if Integers()!value le ( modulus / 2 ) then
+        return Integers()!value;
+    else
+        return ( Integers()!value - modulus );
+    end if;
+end function;
+
+/*
+================================================================================
+Defining the van Geemen, van der Kallen, Top, Verberkmoes algorithm for reducing 
+modular symbols.
+================================================================================
+*/
+
+function modform_reduction(mod_symbol)
+// -----------------------------------------------------------------------------
+// Establishing default information about the modular symbol to be reduced.
+// -----------------------------------------------------------------------------
+    nonzero_det_symbols := [];
+    
+    Q_T := Transpose(mod_symbol);
+    Q_T_ref := EchelonForm(Q_T);
+    Q_cef := Transpose(Q_T_ref);
+    
+    m1 := Q_cef[1, 1];
+    m2 := Q_cef[2, 2];
+    m3 := Q_cef[3, 3];
+    
+    a := Q_cef[2, 1];
+    b := Q_cef[3, 1];
+    c := Q_cef[3, 2];
+    
+// -----------------------------------------------------------------------------
+// Case 1: m = m1
+// -----------------------------------------------------------------------------
+    if (m1 ne 1) and (m1 ne -1) then
+        m := m1;
+        x := [1, 0, 0];
+    
+// -----------------------------------------------------------------------------
+// Case 2: m = m2
+// -----------------------------------------------------------------------------
+    elif (m2 ne 1) and (m2 ne -1) then
+        m := m2;
+        if m1 eq 1 then
+            x := [mod_abs_value(-a, m), 1, 0];
+        elif m1 eq -1 then
+            x := [mod_abs_value(a, m), 1, 0];
+        end if;
+
+// -----------------------------------------------------------------------------
+// Case 3: m = m3
+// -----------------------------------------------------------------------------
+    elif (m3 ne 1) and (m3 ne -1) then
+        m := m3;
+        if m1 eq 1 and m2 eq 1 then
+            x := [mod_abs_value(a*c - b, m), mod_abs_value(-c, m), 1];
+        elif m1 eq 1 and m2 eq -1 then
+            x := [mod_abs_value(-a*c - b, m), mod_abs_value(c, m), 1];
+        elif m1 eq -1 and m2 eq 1 then
+            x := [mod_abs_value(-a*c + b, m), mod_abs_value(-c, m), 1];
+        elif m1 eq -1 and m2 eq -1 then
+            x := [mod_abs_value(a*c + b, m), mod_abs_value(c, m), 1];
+        end if;
+    end if;
+    
+// -----------------------------------------------------------------------------
+// Building the vector v. 
+// -----------------------------------------------------------------------------
+    x1 := x[1];
+    x2 := x[2];
+    x3 := x[3];
+    
+    t1 := x1/m;
+    t2 := x2/m;
+    t3 := x3/m;
+    
+    q1 := mod_symbol[1];
+    q2 := mod_symbol[2];
+    q3 := mod_symbol[3];
+    
+    v1 := t1*Vector(Rationals(), q1);
+    v2 := t2*Vector(Rationals(), q2);
+    v3 := t3*Vector(Rationals(), q3);
+    
+    v := v1 + v2 + v3;
+
+// -----------------------------------------------------------------------------
+// Determining which modular symbols to return after the reduction is complete.
+// -----------------------------------------------------------------------------
+    Q1 := Matrix(Integers(), [Eltseq(v), Eltseq(q2), Eltseq(q3)]);
+    Q2 := Matrix(Integers(), [Eltseq(q1), Eltseq(v), Eltseq(q3)]);
+    Q3 := Matrix(Integers(), [Eltseq(q1), Eltseq(q2), Eltseq(v)]);
+    
+    for test_matrix in [Q1, Q2, Q3] do
+        if Determinant(test_matrix) ne 0 then
+            Append(~nonzero_det_symbols, test_matrix);
+        end if;
+    end for;
+    
+    return nonzero_det_symbols;
+end function;
+
+/*
+================================================================================
+Building a function that computes the action of the Hecke operator E_l on the 
+cuspidal cohomology.
+
+* N denotes the level of the congruence subgroup.
+* Fq denotes the finite field used to simulate the complex numbers.
+* l_list denotes a list of primes; for each l, the action of the Hecke operator 
+E_l will be computed.
+================================================================================
+*/
+
+function Compute_Hecke_Action(N, Fq, l_list)
+// -----------------------------------------------------------------------------
+// Sets default information needed to compute the action of E_l.
+// -----------------------------------------------------------------------------
+    P := ProjectiveSpace(GF(N), 2);
+    Points := Points(P);
+    Dict := AssociativeArray();
+        pt_counter := 0;
+        for pt in Points do
+            pt_counter +:= 1;
+            Dict[pt] := pt_counter;
+        end for;
+
+    M := Matrix_Construction(N, Fq);
+    Kernel_Basis := KernelMatrix(Transpose(M));
+    dim_U := Nrows(Kernel_Basis);
+
+    output_data := [];
+    for l in l_list do
+// -----------------------------------------------------------------------------
+// Builds a list of coset representatives (B_i's) for E_l.
+// -----------------------------------------------------------------------------
+        Reps_E := [];
+
+        for i in [0..l-1] do
+            for j in [0..l-1] do
+                v1 := [1, 0, 0];
+                v2 := [0, 1, 0];
+                v3 := [i*N, j, l];
+                Bi := Matrix(Integers(), [v1, v2, v3]);
+                Append(~Reps_E, Bi);
+            end for;
+        end for;
+
+        for k in [0..l-1] do
+            v1 := [1, 0, 0];
+            v2 := [k*N, l, 0];
+            v3 := [0, 0, 1];
+            Bi := Matrix(Integers(), [v1, v2, v3]);
+            Append(~Reps_E, Bi);
+        end for;
+
+        v1 := [l, 0, 0];
+        v2 := [0, 1, 0];
+        v3 := [0, 0, 1];
+        Bi := Matrix(Integers(), [v1, v2, v3]);
+        Append(~Reps_E, Bi);
+
+// -----------------------------------------------------------------------------
+// Builds an initial (potential) spanning set of R_xyz's. 
+// -----------------------------------------------------------------------------
+        R_list := [];
+
+        x_list := [Random(1, N-1), Random(1, N-1)];
+        y_list := [Random(1, N-1), Random(1, N-1)];
+        z_list := [Random(1, N-1)];
+
+        for x_j in x_list do
+            for y_j in y_list do
+                for z_j in z_list do
+                    y_over_x := Integers(N)!(y_j / x_j);
+                    z_over_x := Integers(N)!(z_j / x_j);
+                    
+                    Q_xy := Matrix(Integers(), [[1, 0, 0], [x_j, 1, 0], [y_j, 0, 1]]);
+                    Q_yz := Matrix(Integers(), [[1, 0, 0], [y_j, 1, 0], [z_j, 0, 1]]);
+                    Q_zx := Matrix(Integers(), [[1, 0, 0], [z_j, 1, 0], [x_j, 0, 1]]);
+                    Q_frac := Matrix(Integers(), [[1, 0, 0], [y_over_x, 1, 0], [z_over_x, 0, 1]]);
+                    
+                    Append(~R_list, [Q_xy, Q_yz, Q_zx, Q_frac]);
+                end for;
+            end for;
+        end for;
+
+// -----------------------------------------------------------------------------
+// Computes Hecke eigenvalues for Hecke operator E_l using using R_xyz's. 
+// -----------------------------------------------------------------------------
+        start_var := true;
+        Basis_Matrix := Matrix(Fq, dim_U, 0, []);
+        Tf_Matrix := Matrix(Fq, dim_U, 0, []);
+        Span_Set_Loc := 0;
+
+        while start_var or Rank(Basis_Matrix) ne dim_U do
+            start_var := false;
+        
+            Tf_Matrix := HorizontalJoin(Tf_Matrix, Matrix(Fq, 2, #R_list, []));
+            Basis_Matrix := HorizontalJoin(Basis_Matrix, Matrix(Fq, 2, #R_list, []));
+
+            for R_xyz in R_list do
+                Bi_sum_list := Zero(VectorSpace(Fq, dim_U));
+                Qj_loc := 0;
+                Span_Set_Loc +:= 1;
+
+                for Qj in R_xyz do
+                    Qj_loc +:= 1;
+                    Rxyz_sum_list := Zero(VectorSpace(Fq, dim_U));
+
+                    for Bi in Reps_E do
+                        Qij_sum_list := Zero(VectorSpace(Fq, dim_U));
+
+                        QB := Qj*Bi;
+
+                        uni_symbols_QB := [];
+                        starting_list := modform_reduction(QB);
+                        working_symbols := starting_list;
+
+                        while #starting_list ne 0 do
+                            for test_matrix in starting_list do
+                                if Determinant(test_matrix) eq 1 then
+                                    Append(~uni_symbols_QB, test_matrix);
+                                    index_to_remove := Index(working_symbols, test_matrix);
+                                    Remove(~working_symbols, index_to_remove);
+                                elif Determinant(test_matrix) eq -1 then
+                                    index_to_remove := Index(working_symbols, test_matrix);
+                                    Remove(~working_symbols, index_to_remove);
+                                    sign_swap_matrix := Matrix(Integers(), 3, [-1, 0, 0, 0, 1, 0, 0, 0, 1])*test_matrix;
+                                    Append(~uni_symbols_QB, sign_swap_matrix);
+                                else
+                                    output := modform_reduction(test_matrix);
+                                    index_to_replace := Index(working_symbols, test_matrix);
+                                    working_symbols := working_symbols[1..index_to_replace-1] cat output cat working_symbols[index_to_replace+1..#working_symbols];
+                                end if;
+                            end for;
+                            starting_list := working_symbols;
+                        end while;
+
+                        for Q in uni_symbols_QB do
+                            proj_point := P!([Q[1, 1], Q[2, 1], Q[3, 1]]);
+                            function_output_list := Zero(VectorSpace(Fq, dim_U));
+
+                            for i in [1..dim_U] do
+                                function_output_list[i] := Kernel_Basis[i][Dict[proj_point]];
+                                Qij_sum_list[i] +:= function_output_list[i];
+                            end for;
+                        end for;
+
+                        for i in [1..dim_U] do
+                            if Qj_loc lt 4 then
+                                Rxyz_sum_list[i] +:= Qij_sum_list[i];
+                            elif Qj_loc eq 4 then
+                                Rxyz_sum_list[i] -:= Qij_sum_list[i];
+                            end if;
+                        end for;
+                    end for;
+
+                    for j in [1..dim_U] do
+                        Bi_sum_list[j] +:= Rxyz_sum_list[j];
+                    end for;
+                end for;
+
+                for k in [1..dim_U] do
+                    Tf_Matrix[k, Span_Set_Loc] := Bi_sum_list[k];
+                    Basis_Matrix[k, Span_Set_Loc] := Kernel_Basis[k][Dict[P!(Eltseq(ColumnSubmatrix(R_xyz[1], 1, 1)))]] + Kernel_Basis[k][Dict[P!(Eltseq(ColumnSubmatrix(R_xyz[2], 1, 1)))]] + Kernel_Basis[k][Dict[P!(Eltseq(ColumnSubmatrix(R_xyz[3], 1, 1)))]] - Kernel_Basis[k][Dict[P!(Eltseq(ColumnSubmatrix(R_xyz[4], 1, 1)))]];
+                end for;
+            end for;
+
+            if Rank(Basis_Matrix) ne dim_U then
+                x_rand := Random(1, N-1);
+                y_rand := Random(1, N-1);
+                z_rand := Random(1, N-1);
+
+                y_over_x := Integers(N)!(y_rand / x_rand);
+                z_over_x := Integers(N)!(z_rand / x_rand);
+
+                Q_xy := Matrix(Integers(), [[1, 0, 0], [x_rand, 1, 0], [y_rand, 0, 1]]);
+                Q_yz := Matrix(Integers(), [[1, 0, 0], [y_rand, 1, 0], [z_rand, 0, 1]]);
+                Q_zx := Matrix(Integers(), [[1, 0, 0], [z_rand, 1, 0], [x_rand, 0, 1]]);
+                Q_frac := Matrix(Integers(), [[1, 0, 0], [y_over_x, 1, 0], [z_over_x, 0, 1]]);
+                Append(~R_list, [Q_xy, Q_yz, Q_zx, Q_frac]);
+
+            else
+                A := Solution(Basis_Matrix, Tf_Matrix);
+                Char_Poly := CharacteristicPolynomial(A);
+            end if;
+
+        end while;
+
+    // -----------------------------------------------------------------------------
+    // Formats and prints the results. 
+    // -----------------------------------------------------------------------------
+        results := <>;
+        for eigenpair in Eigenvalues(A) do
+            lambda := eigenpair[1];
+            eigenspace := Eigenspace(A, lambda);
+            eigenbasis := Basis(eigenspace);
+            Append(~results, <lambda, eigenbasis[1]>);
+        end for;
+
+        if #results eq 0 then
+            return "Characteristic polynomial is irreducible, choose another prime q.";
+        elif #results eq 1 then
+            result_string := Sprintf("%o : %o : %o : %o : NONE\n", l, Char_Poly, results[1][1], results[1][2]);
+            printf(result_string);
+        else
+            result_string := Sprintf("%o : %o : %o : %o : %o : %o\n", l, Char_Poly, results[1][1], results[1][2], results[2][1], results[2][2]);
+            printf(result_string);
+        end if;   
+    end for;
+    return "Run complete.";
+end function;
+
+/*
+fileName := "output.txt";
+Write(fileName, "l : Char Poly : lambda_1 : eigenvector_1 : lambda_2 : eigenvector_2");
+for l in [ p : p in [1..30] | IsPrime(p) ] do
+    output := Compute_Hecke_Action(521, Integers(12379), l);
+    Write(fileName, output);
+end for;
+*/
